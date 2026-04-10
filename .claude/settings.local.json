@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(start \"\" \"D:/35844/Documents/PkSim/pvp_trainer.html\")",
+      "Bash(curl -s \"https://oldschool.runescape.wiki/api.php?action=query&titles=File:Protect_from_Magic.png|File:Protect_from_Missiles.png|File:Protect_from_Melee.png&prop=imageinfo&iiprop=url&format=json\")",
+      "Bash(curl -L -A \"Mozilla/5.0\" -o \"D:/35844/Documents/PkSim/protect_magic.png\" \"https://oldschool.runescape.wiki/images/Protect_from_Magic.png?5c9d8\" && curl -L -A \"Mozilla/5.0\" -o \"D:/35844/Documents/PkSim/protect_ranged.png\" \"https://oldschool.runescape.wiki/images/Protect_from_Missiles.png?686a4\" && curl -L -A \"Mozilla/5.0\" -o \"D:/35844/Documents/PkSim/protect_melee.png\" \"https://oldschool.runescape.wiki/images/Protect_from_Melee.png?65856\")",
+      "Bash(gh --version)",
+      "Bash(git --version)"
+    ]
+  }
+}

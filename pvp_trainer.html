@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OSRS PVP Trainer</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gold: #c8aa6e;
+    --gold-light: #f0d080;
+    --bg: #0d0d0d;
+    --bg2: #181510;
+    --bg3: #242018;
+    --red: #e05050;
+    --green: #50d060;
+    --blue: #4488ee;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--gold);
+    font-family: 'Press Start 2P', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px 12px;
+    gap: 14px;
+  }
+
+  h1 {
+    font-size: 12px;
+    color: var(--gold-light);
+    letter-spacing: 3px;
+    text-shadow: 0 0 14px #c8aa6e66;
+    text-align: center;
+  }
+
+  /* Controls */
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg2);
+    border: 2px solid #3a3020;
+    border-radius: 6px;
+    padding: 12px 16px;
+    width: 100%;
+    max-width: 860px;
+  }
+  .ctrl { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .ctrl label { font-size: 7px; color: #a08050; }
+  input[type=range] { accent-color: var(--gold); width: 130px; }
+  button {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    border: 2px solid var(--green);
+    background: #0a2010;
+    color: var(--green);
+  }
+  button.stop { border-color: var(--red); background: #200a0a; color: var(--red); }
+
+  /* Outer wrapper: trainer left + tabs right */
+  .outer {
+    width: 100%;
+    max-width: 860px;
+    display: flex;
+    gap: 12px;
+    align-items: stretch;
+  }
+
+  /* ── LEFT: trainer card ── */
+  .main-card {
+    flex: 1 1 0;
+    background: var(--bg2);
+    border: 3px solid #3a3020;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    transition: border-color 0.25s, box-shadow 0.25s;
+  }
+  .main-card.melee  { border-color: var(--red);   box-shadow: 0 0 28px #e0505033; }
+  .main-card.ranged { border-color: var(--green);  box-shadow: 0 0 28px #50d06033; }
+  .main-card.magic  { border-color: var(--blue);   box-shadow: 0 0 28px #4488ee33; }
+
+  .panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 16px;
+  }
+  .panel.prayer-panel { padding-bottom: 6px; }
+  .panel.weapon-panel { padding-top: 6px; }
+
+  /* Prayer display */
+  .prayer-img-wrap {
+    display: flex; align-items: center; justify-content: center;
+    image-rendering: pixelated;
+  }
+  .prayer-img-wrap img { width: 80px; height: 80px; image-rendering: pixelated; object-fit: contain; }
+
+  /* Weapon display */
+  .weapon-img-wrap {
+    width: 320px; height: 320px;
+    display: flex; align-items: center; justify-content: center;
+    background: #0d0a06;
+    border: 2px solid #3a3020;
+    border-radius: 6px;
+    image-rendering: pixelated;
+  }
+  .weapon-img-wrap img { width: 300px; height: 300px; image-rendering: pixelated; object-fit: contain; }
+
+  /* Idle */
+  .idle-overlay {
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; color: #5a4a2a;
+    min-height: 480px;
+    text-align: center; padding: 20px;
+  }
+
+  /* ── RIGHT: tabs column ── */
+  .tabs-col {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 200px;
+    flex-shrink: 0;
+  }
+
+  .tab-box {
+    position: relative;
+    border-radius: 6px;
+    overflow: hidden;
+    flex: 1;
+  }
+  .tab-bg {
+    width: 100%;
+    display: block;
+    image-rendering: pixelated;
+  }
+  /* Items overlaid on top of tab image */
+  .tab-items {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+
+  .slot {
+    width: 52px; height: 52px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    border-radius: 4px;
+    border: 2px solid transparent;
+    transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+    image-rendering: pixelated;
+    background: rgba(0,0,0,0.35);
+  }
+  .slot img {
+    width: 44px; height: 44px;
+    image-rendering: pixelated;
+    object-fit: contain;
+    pointer-events: none;
+  }
+  .slot:hover { border-color: #c8aa6e88; }
+  .slot.active {
+    border-color: var(--gold-light);
+    box-shadow: 0 0 12px #f0d08099, inset 0 0 8px #f0d08033;
+    background: rgba(240,208,80,0.15);
+  }
+
+  /* Countdown */
+  .countdown-wrap {
+    width: 100%; max-width: 860px;
+    height: 10px;
+    background: var(--bg3);
+    border: 2px solid #3a3020;
+    border-radius: 5px;
+    overflow: hidden;
+  }
+  .countdown-bar {
+    height: 100%; width: 100%;
+    background: var(--gold);
+    transition: background 0.25s;
+  }
+  .countdown-bar.melee  { background: var(--red); }
+  .countdown-bar.ranged { background: var(--green); }
+  .countdown-bar.magic  { background: var(--blue); }
+
+  /* History */
+  .history-box {
+    width: 100%; max-width: 860px;
+    background: var(--bg2);
+    border: 2px solid #2a2018;
+    border-radius: 6px;
+    padding: 12px 14px;
+  }
+  .history-box h3 { font-size: 8px; color: #a08050; margin-bottom: 10px; }
+  .hist-row {
+    display: flex; gap: 10px; font-size: 7px;
+    padding: 4px 0; border-bottom: 1px solid #2a2018;
+    align-items: center; opacity: 0.6;
+  }
+  .hist-row:first-child { opacity: 1; }
+  .hist-row:last-child  { border-bottom: none; }
+  .hist-style.melee  { color: var(--red); }
+  .hist-style.ranged { color: var(--green); }
+  .hist-style.magic  { color: var(--blue); }
+  .hist-sep { color: #5a4a2a; }
+
+  /* HP bar */
+  .hp-row {
+    width: 100%; max-width: 860px;
+    display: flex; align-items: center; gap: 12px;
+    background: var(--bg2);
+    border: 2px solid #3a3020;
+    border-radius: 6px;
+    padding: 10px 16px;
+    position: relative;
+  }
+  .hp-label { font-size: 8px; color: var(--gold); white-space: nowrap; }
+  .hp-track {
+    flex: 1; height: 20px;
+    background: #0d0a06;
+    border: 2px solid #3a3020;
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+  }
+  .hp-fill {
+    height: 100%;
+    width: 100%;
+    background: var(--green);
+    transition: width 0.3s, background 0.3s;
+    border-radius: 2px;
+  }
+  .hp-num {
+    font-size: 9px;
+    color: var(--gold-light);
+    white-space: nowrap;
+    min-width: 40px;
+    text-align: right;
+  }
+
+  /* Hitsplat */
+  .hitsplat {
+    position: absolute;
+    width: 56px; height: 56px;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    pointer-events: none;
+    z-index: 10;
+  }
+  .hitsplat img { width: 100%; height: 100%; object-fit: contain; }
+  @keyframes splat {
+    0%   { transform: translate(-50%,-50%) scale(0); opacity: 1; }
+    20%  { transform: translate(-50%,-50%) scale(1.3); opacity: 1; }
+    40%  { transform: translate(-50%,-50%) scale(1); opacity: 1; }
+    80%  { transform: translate(-50%,-50%) scale(1); opacity: 1; }
+    100% { transform: translate(-50%,-50%) scale(1); opacity: 0; }
+  }
+  .hitsplat.show { animation: splat 0.9s ease forwards; }
+
+  /* Game over overlay */
+  .gameover {
+    position: fixed; inset: 0;
+    background: #000000cc;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 20px; z-index: 100;
+  }
+  .gameover h2 { font-size: 20px; color: var(--red); text-shadow: 0 0 20px var(--red); }
+  .gameover p  { font-size: 9px; color: var(--gold); }
+  .gameover button { font-size: 10px; padding: 12px 24px; }
+</style>
+</head>
+<body>
+
+<h1>⚔ OSRS PVP TRAINER ⚔</h1>
+
+<div class="controls">
+  <div class="ctrl">
+    <label>SPEED: <span id="speedVal">4</span>s</label>
+    <input type="range" id="speedSlider" min="2" max="8" value="4" step="0.5">
+  </div>
+  <button id="startBtn" onclick="toggle()">▶ START</button>
+  <button id="chalBtn" onclick="toggleChallenge()" style="border-color:#c060e0;background:#180a28;color:#c060e0">☆ CHALLENGE</button>
+  <div class="ctrl">
+    <label>PRAYER SCORE</label>
+    <span id="scoreDisplay" style="font-size:14px;color:var(--gold-light)">0</span>
+  </div>
+  <div class="ctrl">
+    <label>HIT SCORE</label>
+    <span id="hitDisplay" style="font-size:14px;color:var(--gold-light)">0</span>
+  </div>
+  <div class="ctrl">
+    <label>TIME</label>
+    <span id="timeDisplay" style="font-size:10px;color:var(--gold-light)">0:00</span>
+  </div>
+</div>
+
+<div class="hp-row" id="hpRow">
+  <span class="hp-label">HP</span>
+  <div class="hp-track">
+    <div class="hp-fill" id="hpFill"></div>
+  </div>
+  <span class="hp-num" id="hpNum">10 / 10</span>
+  <div class="hitsplat" id="hitsplat">
+    <img src="O9Z2qRO.png" alt="hit">
+  </div>
+</div>
+
+<div class="outer">
+  <!-- Left: trainer -->
+  <div class="main-card" id="card">
+    <div class="idle-overlay">Press START to begin</div>
+  </div>
+
+  <!-- Right: inventory + prayer book -->
+  <div class="tabs-col">
+
+    <!-- Inventory -->
+    <div class="tab-box">
+      <img class="tab-bg" src="Inventory_tab.png" alt="Inventory">
+      <div class="tab-items">
+        <div class="slot" id="inv-melee" onclick="selectSlot(this,'inv')">
+          <img src="Dragon_scimitar.png" alt="melee">
+        </div>
+        <div class="slot" id="inv-ranged" onclick="selectSlot(this,'inv')">
+          <img src="Dragon_crossbow.png" alt="ranged">
+        </div>
+        <div class="slot" id="inv-magic" onclick="selectSlot(this,'inv')">
+          <img src="Ancient_staff.png" alt="magic">
+        </div>
+      </div>
+    </div>
+
+    <!-- Prayer book -->
+    <div class="tab-box">
+      <img class="tab-bg" src="Inventory_tab.png" alt="Prayers">
+      <div class="tab-items">
+        <div class="slot" id="pray-magic" onclick="selectSlot(this,'pray')">
+          <img src="protect_from_magic.png" alt="">
+        </div>
+        <div class="slot" id="pray-ranged" onclick="selectSlot(this,'pray')">
+          <img src="protect_from_missiles.png" alt="">
+        </div>
+        <div class="slot" id="pray-melee" onclick="selectSlot(this,'pray')">
+          <img src="protect_from_melee.png" alt="">
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="countdown-wrap">
+  <div class="countdown-bar" id="bar" style="width:0%"></div>
+</div>
+
+<div class="history-box">
+  <h3>HISTORY</h3>
+  <div id="histList"><div class="hist-row" style="color:#5a4a2a">— none yet —</div></div>
+</div>
+
+<script>
+const WIKI = 'https://oldschool.runescape.wiki/images/';
+
+const STYLE_IMG = { melee: 'melee.png', ranged: 'ranged.png', magic: 'mage.webp' };
+
+const WEAPONS = {
+  melee:  [{ name: 'Armadyl Godsword' }, { name: 'Dragon Claws' }, { name: 'Abyssal Whip' }, { name: 'Dragon Dagger (p++)' }, { name: 'Granite Maul' }],
+  ranged: [{ name: 'Twisted Bow' }, { name: 'Armadyl Crossbow' }, { name: 'Blowpipe' }, { name: 'Magic Shortbow (i)' }, { name: 'Heavy Ballista' }],
+  magic:  [{ name: 'Trident of the Swamp' }, { name: 'Sanguinesti Staff' }, { name: 'Ancient Staff (Ice Barrage)' }, { name: 'Kodai Wand (Fire Surge)' }, { name: 'Toxic Staff of the Dead' }],
+};
+const PRAYERS = {
+  melee:  { name: 'Protect from Melee',    img: 'protect_from_melee.png' },
+  ranged: { name: 'Protect from Missiles', img: 'protect_from_missiles.png' },
+  magic:  { name: 'Protect from Magic',    img: 'protect_from_magic.png' },
+};
+const STYLES = ['melee', 'ranged', 'magic'];
+
+let running = false, timerId = null, rafId = null, history = [];
+let prayerScore = 0, hitScore = 0, startTime = null, clockId = null;
+let currentWStyle = null, currentPStyle = null;
+let prayerScored = false, hitScored = false;
+let hp = 10, firstRound = true;
+let challengeMode = false, challengeSpeed = 6.0;
+
+const speedSlider    = document.getElementById('speedSlider');
+const speedVal       = document.getElementById('speedVal');
+const startBtn       = document.getElementById('startBtn');
+const card           = document.getElementById('card');
+const bar            = document.getElementById('bar');
+const histList       = document.getElementById('histList');
+const scoreDisplay   = document.getElementById('scoreDisplay');
+const hitDisplay     = document.getElementById('hitDisplay');
+const timeDisplay    = document.getElementById('timeDisplay');
+const hpFill         = document.getElementById('hpFill');
+const hpNum          = document.getElementById('hpNum');
+const hitsplat       = document.getElementById('hitsplat');
+
+speedSlider.addEventListener('input', () => {
+  speedVal.textContent = speedSlider.value;
+});
+
+function toggleChallenge() {
+  if (running) return; // can't switch mid-game
+  challengeMode = !challengeMode;
+  const btn = document.getElementById('chalBtn');
+  if (challengeMode) {
+    btn.textContent = '★ CHALLENGE';
+    btn.style.background = '#2a0a48';
+    btn.style.borderColor = '#d080ff';
+    btn.style.color = '#d080ff';
+    speedSlider.disabled = true;
+    speedSlider.style.opacity = '0.3';
+  } else {
+    btn.textContent = '☆ CHALLENGE';
+    btn.style.background = '#180a28';
+    btn.style.borderColor = '#c060e0';
+    btn.style.color = '#c060e0';
+    speedSlider.disabled = false;
+    speedSlider.style.opacity = '1';
+  }
+}
+
+function getCurrentSpeed() {
+  return challengeMode ? challengeSpeed : parseFloat(speedSlider.value);
+}
+
+function selectSlot(el, group) {
+  const prefix = group === 'inv' ? 'inv' : 'pray';
+  document.querySelectorAll(`[id^="${prefix}-"]`).forEach(s => s.classList.remove('active'));
+  el.classList.add('active');
+
+  if (group === 'pray' && currentWStyle && !prayerScored) {
+    const clickedStyle = el.id.replace('pray-', '');
+    if (clickedStyle === currentWStyle) {
+      prayerScored = true;
+      prayerScore++;
+      scoreDisplay.textContent = prayerScore;
+      flash(scoreDisplay);
+    }
+  }
+
+  if (group === 'inv' && currentPStyle && !hitScored) {
+    const clickedStyle = el.id.replace('inv-', '');
+    if (clickedStyle !== currentPStyle) {
+      hitScored = true;
+      hitScore++;
+      hitDisplay.textContent = hitScore;
+      flash(hitDisplay);
+    }
+  }
+}
+
+function flash(el) {
+  el.style.color = 'var(--green)';
+  setTimeout(() => el.style.color = 'var(--gold-light)', 300);
+}
+
+function updateHpBar() {
+  const pct = (hp / 10) * 100;
+  hpFill.style.width = pct + '%';
+  hpFill.style.background = hp > 6 ? 'var(--green)' : hp > 3 ? '#e0a030' : 'var(--red)';
+  hpNum.textContent = `${hp} / 10`;
+}
+
+function takeDamage() {
+  hp = Math.max(0, hp - 1);
+  updateHpBar();
+  // Hitsplat animation
+  hitsplat.classList.remove('show');
+  void hitsplat.offsetWidth; // reflow to restart animation
+  hitsplat.classList.add('show');
+  if (hp === 0) setTimeout(gameOver, 950);
+}
+
+function gameOver() {
+  const extra = challengeMode ? `<p style="color:#c060e0;font-size:8px">⚡ Reached ${challengeSpeed.toFixed(2)}s speed</p>` : '';
+  stop();
+  const div = document.createElement('div');
+  div.className = 'gameover';
+  div.innerHTML = `
+    <h2>YOU DIED</h2>
+    ${extra}
+    <p>Prayer: ${prayerScore} &nbsp;|&nbsp; Hits: ${hitScore} &nbsp;|&nbsp; Time: ${timeDisplay.textContent}</p>
+    <button onclick="this.parentElement.remove()">▶ PLAY AGAIN</button>
+  `;
+  document.body.appendChild(div);
+}
+
+function clearHighlights() {
+  document.querySelectorAll('.slot').forEach(s => s.classList.remove('active'));
+}
+
+function rand(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+function toggle() { running ? stop() : start(); }
+
+function start() {
+  running = true;
+  prayerScore = 0; hitScore = 0;
+  hp = 10; firstRound = true;
+  challengeSpeed = 6.0;
+  scoreDisplay.textContent = '0'; hitDisplay.textContent = '0';
+  scoreDisplay.style.color = 'var(--gold-light)'; hitDisplay.style.color = 'var(--gold-light)';
+  updateHpBar();
+  hitsplat.classList.remove('show');
+  startTime = Date.now();
+  startBtn.textContent = '■ STOP';
+  startBtn.className = 'stop';
+  clockId = setInterval(updateClock, 1000);
+  show();
+  scheduleNext();
+}
+
+function stop() {
+  running = false;
+  currentWStyle = null; currentPStyle = null;
+  startBtn.textContent = '▶ START';
+  startBtn.className = '';
+  clearTimeout(timerId);
+  clearInterval(clockId);
+  cancelAnimationFrame(rafId);
+  bar.style.width = '0%';
+  bar.className = 'countdown-bar';
+  card.className = 'main-card';
+  card.innerHTML = '<div class="idle-overlay">Press START to begin</div>';
+  clearHighlights();
+  if (challengeMode) speedVal.textContent = speedSlider.value;
+}
+
+function updateClock() {
+  const s = Math.floor((Date.now() - startTime) / 1000);
+  timeDisplay.textContent = `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+}
+
+function scheduleNext() {
+  clearTimeout(timerId);
+  const ms = getCurrentSpeed() * 1000;
+  countdown(ms);
+  timerId = setTimeout(() => {
+    if (!running) return;
+    show();
+    if (running) scheduleNext();
+  }, ms);
+}
+
+function countdown(ms) {
+  cancelAnimationFrame(rafId);
+  const t0 = performance.now();
+  function frame(now) {
+    const pct = Math.max(0, 100 - (now - t0) / ms * 100);
+    bar.style.width = pct + '%';
+    if (pct > 0 && running) rafId = requestAnimationFrame(frame);
+  }
+  rafId = requestAnimationFrame(frame);
+}
+
+function show() {
+  if (!firstRound && !prayerScored) takeDamage();
+  if (hp === 0) return;
+  if (!firstRound && challengeMode) {
+    challengeSpeed = Math.max(1.0, +(challengeSpeed - 0.25).toFixed(2));
+  }
+  if (challengeMode) speedVal.textContent = challengeSpeed.toFixed(2) + 's';
+  firstRound = false;
+
+  const wStyle = rand(STYLES);
+  const pStyle = rand(STYLES);
+  const weapon = rand(WEAPONS[wStyle]);
+  const prayer = PRAYERS[pStyle];
+
+  currentWStyle = wStyle;
+  currentPStyle = pStyle;
+  prayerScored = false;
+  hitScored = false;
+  card.className = 'main-card ' + wStyle;
+  bar.className  = 'countdown-bar ' + wStyle;
+
+  card.innerHTML = `
+    <div class="panel prayer-panel">
+      <div class="prayer-img-wrap">
+        <img src="${prayer.img}" alt="">
+      </div>
+    </div>
+    <div class="panel weapon-panel">
+      <div class="weapon-img-wrap">
+        <img src="${STYLE_IMG[wStyle]}" alt="${weapon.name}">
+      </div>
+    </div>
+  `;
+
+  clearHighlights();
+  pushHistory(wStyle, weapon.name, pStyle, prayer.name);
+}
+
+function pushHistory(wStyle, wName, pStyle, pName) {
+  history.unshift({ wStyle, wName, pStyle, pName });
+  if (history.length > 5) history.pop();
+  histList.innerHTML = history.map(h => `
+    <div class="hist-row">
+      <span class="hist-style ${h.wStyle}">${h.wStyle.toUpperCase()}</span>
+      <span>${h.wName}</span>
+      <span class="hist-sep">|</span>
+      <span class="hist-style ${h.pStyle}">${h.pStyle.toUpperCase()}</span>
+      <span>${h.pName}</span>
+    </div>
+  `).join('');
+}
+</script>
+</body>
+</html>
